@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option go_package = "http://Grpc/User";
+
+package User;
+
+message UserRequest{
+    string Id = 1;
+    string SecretCode = 2;
+}
+
+message UserResponse{
+    string Id =1;
+    string Name = 2;
+    string Address = 3;
+    string PhoneNum = 4;
+}
+
+message UserDetails{
+    string Id = 1;
+    string SecretCode = 2;
+    string Name = 3;
+    string Address = 4;
+    string PhoneNum = 5;
+    string UserType = 6;
+    string DiseaseDes = 7;
+    map<string,int32> RequestUsers = 8;
+    map<string,int32> PendingUsers = 9;
+    map<string,int32> ConnectUsers = 10;
+}
+
+message Success{
+    string Name = 1;
+}
+message ListUser{
+    repeated UserResponse Users = 1;
+}
+
+service UserService{
+    rpc CreateUser(UserDetails) returns(UserDetails){};
+    rpc Login(UserDetails) returns(UserDetails){};
+    rpc DeleteUser(UserDetails) returns(Success){};
+    rpc UpdateUser(UserDetails) returns(UserDetails){};
+    rpc GetUser(UserRequest) returns(UserResponse){};
+    rpc GetAllDonors(UserDetails) returns(ListUser){};
+    rpc GetAllPatients(UserDetails) returns(ListUser){};
+    rpc SendRequest(UserRequest) returns(Success){};
+    rpc AcceptRequest(UserRequest) returns(Success){};
+    rpc CancelRequest(UserRequest) returns(Success){};
+    rpc CancelConnection(UserRequest) returns(Success){};
+}
