@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
+	pb "PlazmaDonation/PatientDonorAPI_gRPC/Gen_code"
 	"google.golang.org/grpc"
-	pb "grpc/Grpc/Gen_code"
 )
 
 const (

@@ -27,6 +27,7 @@ message UserDetails{
     map<string,int32> RequestUsers = 8;
     map<string,int32> PendingUsers = 9;
     map<string,int32> ConnectUsers = 10;
+    string Email = 11;
 }
 
 message Success{
