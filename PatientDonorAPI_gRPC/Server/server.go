@@ -1,19 +1,21 @@
-package main
+package services
 
 import (
+	common "PlazmaDonation/PatientDonorAPI_gRPC/Common"
+	pb "PlazmaDonation/PatientDonorAPI_gRPC/Gen_code"
 	"context"
+	"errors"
+	"firebase.google.com/go/auth"
 	"sync"
-
 	//grpc "grpc-go"
 	"google.golang.org/grpc"
-	pb "grpc/Grpc/Gen_code"
 	"log"
 	"math/rand"
 	"net"
 	"strconv"
 )
 
-type server struct {
+type Server struct {
 	pb.UnimplementedUserServiceServer
 }
 
@@ -24,28 +26,59 @@ var Patients map[string]*pb.UserDetails
 var patient = "Patient"
 var donor = "Donor"
 
+const idField = "Id"
+const secretCodeField = "SecretCode"
+const nameField = "Name"
+const addressField = "Address"
+const phoneNumField = "PhoneNum"
+const userTypeField = "UserType"
+const diseaseDesField = "DiseaseDes"
+const requestUsersField = "RequestUsers"
+const pendingUsersField = "PendingUsers"
+const connectUsersField = "ConnectUsers"
+const emailField = "Email"
+
 var m sync.Mutex
 
-func (s *server) CreateUser(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
-	user := in
-	m.Lock()
-	user.Id = strconv.Itoa(rand.Intn(10000000))
-	user.SecretCode = strconv.Itoa(rand.Intn(10000000))
-	user.RequestUsers = make(map[string]int32)
-	user.ConnectUsers = make(map[string]int32)
-	user.PendingUsers = make(map[string]int32)
-	UsersById[user.Id] = user
-	UsersByCode[user.SecretCode] = user
-	if user.UserType == patient {
-		Patients[user.Id] = user
-	} else if user.UserType == donor {
-		Donors[user.Id] = user
+func (s *Server) CreateUser(ctx context.Context, user *pb.UserDetails) (*pb.UserDetails, error) {
+	fireAuth, fireClient, err := common.GetFireAuthFireClient(ctx)
+	if err != nil {
+		return nil, errors.New(common.InternalErrorMsg)
 	}
-	m.Unlock()
-	return user, nil
+	defer common.HandleFirebaseClientError(fireClient)
+	params := (&auth.UserToCreate{}).
+		Email(user.Email).
+		Password("Test123")
+	authUser, appErr := fireAuth.CreateUser(ctx, params)
+	if appErr != nil {
+		log.Println(appErr)
+		return nil, errors.New(common.InvalidLoginErrorMsg)
+	}
+	if _, err := fireClient.Collection(common.CollectionUsers).Doc(authUser.UID).Set(ctx, map[string]interface{}{
+		idField:           authUser.UID,
+		emailField:        user.Email,
+		addressField:      user.Address,
+		nameField:         user.Name,
+		pendingUsersField: user.PendingUsers,
+		connectUsersField: user.ConnectUsers,
+		secretCodeField:   strconv.Itoa(rand.Intn(10000000)),
+		diseaseDesField:   user.DiseaseDes,
+		userTypeField:     user.UserType,
+		phoneNumField:     user.PhoneNum,
+		requestUsersField: user.RequestUsers,
+	}); err != nil {
+		log.Println(err)
+		return nil, errors.New(common.AddErrorMsg)
+	}
+	userDoc, err := common.GetUserDocument(fireClient, authUser.UID)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	return userDoc, nil
 }
 
-func (s *server) Login(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
+func (s *Server) Login(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
 	user := in
 	if userStruct, found := UsersByCode[user.SecretCode]; found {
 		return userStruct, nil
@@ -54,7 +87,7 @@ func (s *server) Login(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, 
 	}
 }
 
-func (s *server) DeleteUser(_ context.Context, in *pb.UserDetails) (*pb.Success, error) {
+func (s *Server) DeleteUser(_ context.Context, in *pb.UserDetails) (*pb.Success, error) {
 	user := in
 	if userStruct, found := UsersByCode[user.SecretCode]; found {
 		tempId := userStruct.Id
@@ -81,7 +114,7 @@ func (s *server) DeleteUser(_ context.Context, in *pb.UserDetails) (*pb.Success,
 	return nil, nil
 }
 
-func (s *server) GetUser(_ context.Context, in *pb.UserRequest) (*pb.UserResponse, error) {
+func (s *Server) GetUser(_ context.Context, in *pb.UserRequest) (*pb.UserResponse, error) {
 	user := in
 	if userD, match := UsersByCode[user.SecretCode]; match {
 		if userStruct, found := UsersById[user.Id]; found {
@@ -105,7 +138,7 @@ func (s *server) GetUser(_ context.Context, in *pb.UserRequest) (*pb.UserRespons
 	return nil, nil
 }
 
-func (s *server) UpdateUser(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
+func (s *Server) UpdateUser(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
 	user := in
 
 	if userStruct, found := UsersByCode[user.SecretCode]; found {
@@ -118,7 +151,7 @@ func (s *server) UpdateUser(_ context.Context, in *pb.UserDetails) (*pb.UserDeta
 	return nil, nil
 }
 
-func (s *server) GetAllDonors(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
+func (s *Server) GetAllDonors(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
 	user := in
 	if userStruct, found := UsersByCode[user.SecretCode]; found {
 		var userData []*pb.UserResponse
@@ -140,7 +173,7 @@ func (s *server) GetAllDonors(_ context.Context, in *pb.UserDetails) (*pb.ListUs
 	return nil, nil
 }
 
-func (s *server) GetAllPatients(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
+func (s *Server) GetAllPatients(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
 	user := in
 	if userStruct, found := UsersByCode[user.SecretCode]; found {
 		var userData []*pb.UserResponse
@@ -162,7 +195,7 @@ func (s *server) GetAllPatients(_ context.Context, in *pb.UserDetails) (*pb.List
 	return nil, nil
 }
 
-func (s *server) SendRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
+func (s *Server) SendRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
 	user := in
 	if sender, found := UsersByCode[user.SecretCode]; found {
 		if receiver, match := UsersById[user.Id]; match {
@@ -186,7 +219,7 @@ func (s *server) SendRequest(_ context.Context, in *pb.UserRequest) (*pb.Success
 	return &pb.Success{Name: "Invalid Request."}, nil
 }
 
-func (s *server) AcceptRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
+func (s *Server) AcceptRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
 	user := in
 	if sender, found := UsersByCode[user.SecretCode]; found {
 		if senderD, match := sender.PendingUsers[user.Id]; match {
@@ -213,7 +246,7 @@ func (s *server) AcceptRequest(_ context.Context, in *pb.UserRequest) (*pb.Succe
 	return &pb.Success{Name: "Request Accepted."}, nil
 }
 
-func (s *server) CancelRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
+func (s *Server) CancelRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
 	user := in
 	if sender, found := UsersByCode[user.SecretCode]; found {
 		if senderD, match := sender.PendingUsers[user.Id]; match {
@@ -238,7 +271,7 @@ func (s *server) CancelRequest(_ context.Context, in *pb.UserRequest) (*pb.Succe
 	return &pb.Success{Name: "Request Rejected."}, nil
 }
 
-func (s *server) CancelConnection(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
+func (s *Server) CancelConnection(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
 	user := in
 	if sender, found := UsersByCode[user.SecretCode]; found {
 		if senderD, match := sender.ConnectUsers[user.Id]; match {
@@ -273,7 +306,7 @@ func main() {
 		log.Println("Failed to listen server")
 	}
 	ser := grpc.NewServer()
-	pb.RegisterUserServiceServer(ser, &server{})
+	pb.RegisterUserServiceServer(ser, &Server{})
 
 	if err := ser.Serve(lis); err != nil {
 		log.Println("failed to serve")
