@@ -1,7 +1,7 @@
 package Common
 
 import (
-	pb "PlazmaDonation/PatientDonorAPI_gRPC/Gen_code"
+	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
 	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 )
 
 const CollectionUsers = "User"
-const ApiKey = ""
+const ApiKey = "AIzaSyAIK1gixh0I6GWLKkh0XJAEHGSsiOP_A2s"
 const credentialPath = "C:\\go_app\\src\\MyProjects\\Plazma-Donation-Application\\plazma-donation-application-firebase-adminsdk-e9wug-b2646babdf.json"
 const UnableToGetInstance = "unable To Get Instance"
 const UnableToGetAuth = "unable to get auth"
