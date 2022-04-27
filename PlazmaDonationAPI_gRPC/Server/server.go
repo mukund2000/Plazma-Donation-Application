@@ -1,8 +1,8 @@
 package services
 
 import (
-	common "PlazmaDonation/PatientDonorAPI_gRPC/Common"
-	pb "PlazmaDonation/PatientDonorAPI_gRPC/Gen_code"
+	common "PlazmaDonation/PlazmaDonationAPI_gRPC/Common"
+	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
 	"context"
 	"errors"
 	"firebase.google.com/go/auth"

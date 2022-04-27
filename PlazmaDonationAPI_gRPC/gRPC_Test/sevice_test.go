@@ -1,9 +1,9 @@
 package gRPC_Test
 
 import (
-	common "PlazmaDonation/PatientDonorAPI_gRPC/Common"
-	pb "PlazmaDonation/PatientDonorAPI_gRPC/Gen_code"
-	services "PlazmaDonation/PatientDonorAPI_gRPC/Server"
+	common "PlazmaDonation/PlazmaDonationAPI_gRPC/Common"
+	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
+	services "PlazmaDonation/PlazmaDonationAPI_gRPC/Server"
 	"bytes"
 	"context"
 	"encoding/json"
