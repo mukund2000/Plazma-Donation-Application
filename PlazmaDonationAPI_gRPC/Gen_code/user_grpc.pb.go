@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error)
-	Login(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Success, error)
 	DeleteUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*Success, error)
 	UpdateUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error)
 	GetUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
@@ -29,6 +29,7 @@ type UserServiceClient interface {
 	AcceptRequest(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
 	CancelRequest(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
 	CancelConnection(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
+	ResetPassword(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 }
 
 type userServiceClient struct {
@@ -48,8 +49,8 @@ func (c *userServiceClient) CreateUser(ctx context.Context, in *UserDetails, opt
 	return out, nil
 }
 
-func (c *userServiceClient) Login(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error) {
-	out := new(UserDetails)
+func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Success, error) {
+	out := new(Success)
 	err := c.cc.Invoke(ctx, "/User.UserService/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -138,12 +139,21 @@ func (c *userServiceClient) CancelConnection(ctx context.Context, in *UserReques
 	return out, nil
 }
 
+func (c *userServiceClient) ResetPassword(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
+	out := new(ResetPasswordResponse)
+	err := c.cc.Invoke(ctx, "/User.UserService/ResetPassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
 	CreateUser(context.Context, *UserDetails) (*UserDetails, error)
-	Login(context.Context, *UserDetails) (*UserDetails, error)
+	Login(context.Context, *LoginRequest) (*Success, error)
 	DeleteUser(context.Context, *UserDetails) (*Success, error)
 	UpdateUser(context.Context, *UserDetails) (*UserDetails, error)
 	GetUser(context.Context, *UserRequest) (*UserResponse, error)
@@ -153,6 +163,7 @@ type UserServiceServer interface {
 	AcceptRequest(context.Context, *UserRequest) (*Success, error)
 	CancelRequest(context.Context, *UserRequest) (*Success, error)
 	CancelConnection(context.Context, *UserRequest) (*Success, error)
+	ResetPassword(context.Context, *EmptyRequest) (*ResetPasswordResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -163,7 +174,7 @@ type UnimplementedUserServiceServer struct {
 func (UnimplementedUserServiceServer) CreateUser(context.Context, *UserDetails) (*UserDetails, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
 }
-func (UnimplementedUserServiceServer) Login(context.Context, *UserDetails) (*UserDetails, error) {
+func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedUserServiceServer) DeleteUser(context.Context, *UserDetails) (*Success, error) {
@@ -192,6 +203,9 @@ func (UnimplementedUserServiceServer) CancelRequest(context.Context, *UserReques
 }
 func (UnimplementedUserServiceServer) CancelConnection(context.Context, *UserRequest) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelConnection not implemented")
+}
+func (UnimplementedUserServiceServer) ResetPassword(context.Context, *EmptyRequest) (*ResetPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -225,7 +239,7 @@ func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserDetails)
+	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -237,7 +251,7 @@ func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/User.UserService/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).Login(ctx, req.(*UserDetails))
+		return srv.(UserServiceServer).Login(ctx, req.(*LoginRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -404,6 +418,24 @@ func _UserService_CancelConnection_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/User.UserService/ResetPassword",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ResetPassword(ctx, req.(*EmptyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -454,6 +486,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelConnection",
 			Handler:    _UserService_CancelConnection_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _UserService_ResetPassword_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

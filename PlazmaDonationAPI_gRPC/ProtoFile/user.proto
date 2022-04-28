@@ -22,24 +22,36 @@ message UserDetails{
     string Name = 3;
     string Address = 4;
     string PhoneNum = 5;
-    string UserType = 6;
+    Type UserType = 6;
     string DiseaseDes = 7;
     map<string,int32> RequestUsers = 8;
     map<string,int32> PendingUsers = 9;
     map<string,int32> ConnectUsers = 10;
     string Email = 11;
 }
-
+enum Type{
+    patient = 0;
+    donor = 1;
+}
 message Success{
     string Name = 1;
 }
 message ListUser{
     repeated UserResponse Users = 1;
 }
+message LoginRequest{
+    string Email = 1;
+    string Password = 2;
+}
+message EmptyRequest{
 
+}
+message ResetPasswordResponse{
+    string ResetLink = 1;
+}
 service UserService{
     rpc CreateUser(UserDetails) returns(UserDetails){};
-    rpc Login(UserDetails) returns(UserDetails){};
+    rpc Login(LoginRequest) returns(Success){};
     rpc DeleteUser(UserDetails) returns(Success){};
     rpc UpdateUser(UserDetails) returns(UserDetails){};
     rpc GetUser(UserRequest) returns(UserResponse){};
@@ -49,4 +61,5 @@ service UserService{
     rpc AcceptRequest(UserRequest) returns(Success){};
     rpc CancelRequest(UserRequest) returns(Success){};
     rpc CancelConnection(UserRequest) returns(Success){};
+    rpc ResetPassword(EmptyRequest) returns(ResetPasswordResponse){};
 }

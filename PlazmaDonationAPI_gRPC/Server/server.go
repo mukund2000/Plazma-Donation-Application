@@ -3,9 +3,12 @@ package services
 import (
 	common "PlazmaDonation/PlazmaDonationAPI_gRPC/Common"
 	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"firebase.google.com/go/auth"
+	"net/http"
 	"sync"
 	//grpc "grpc-go"
 	"google.golang.org/grpc"
@@ -78,13 +81,39 @@ func (s *Server) CreateUser(ctx context.Context, user *pb.UserDetails) (*pb.User
 	return userDoc, nil
 }
 
-func (s *Server) Login(_ context.Context, in *pb.UserDetails) (*pb.UserDetails, error) {
-	user := in
-	if userStruct, found := UsersByCode[user.SecretCode]; found {
-		return userStruct, nil
-	} else {
-		return nil, nil
+func (s *Server) Login(_ context.Context, request *pb.LoginRequest) (*pb.Success, error) {
+	cloudReq := struct {
+		Email             string `json:"email,omitempty"`
+		Password          string `json:"password,omitempty"`
+		ReturnSecureToken bool   `json:"returnSecureToken,omitempty"`
+	}{
+		Email:             request.Email,
+		Password:          request.Password,
+		ReturnSecureToken: true,
 	}
+	jsonData, err := json.Marshal(cloudReq)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	postUrl := "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
+	resp, err := http.Post(postUrl+common.ApiKey, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	var res map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		log.Println(err)
+		return nil, errors.New(common.DecodeErrorMsg)
+	}
+	if res["error"] != nil {
+		return nil, errors.New(common.AuthInvalidMsg)
+	}
+	loginResponse := pb.Success{Name: "Login Success"}
+	return &loginResponse, nil
+
 }
 
 func (s *Server) DeleteUser(_ context.Context, in *pb.UserDetails) (*pb.Success, error) {
