@@ -33,6 +33,8 @@ const FirebaseErrorMsg = "error in getting firebase document"
 const UpdateErrorMsg = "failed to update document"
 const DonorErrorMsg = "unable to get donors data"
 const PatientErrorMsg = "unable to get patients data"
+const UnAuthErrorMsg = "same type of usertype not allowed"
+const RequestNotFound = "request not found"
 
 func GetFirebaseInstance() (*firebase.App, error) {
 	ctx := context.Background()

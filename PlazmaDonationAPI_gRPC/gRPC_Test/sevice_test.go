@@ -200,3 +200,51 @@ func TestGetAllDonors(t *testing.T) {
 	t.Log(response)
 	t.Log("Getting ALL Donors Success")
 }
+func TestSendRequest(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.UserRequest{
+		UserId:          "6n4otLpUlnhB242bsKqHxXEWr7K2",
+		RequestedUserId: "eEuFZZEFWcS93xdIyg8wE5ysEaE2",
+	}
+	response, err := client.SendRequest(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Request Sent Success")
+}
+func TestAcceptRequest(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.UserRequest{
+		UserId:          "eEuFZZEFWcS93xdIyg8wE5ysEaE2",
+		RequestedUserId: "6n4otLpUlnhB242bsKqHxXEWr7K2",
+	}
+	response, err := client.AcceptRequest(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Request Accept Success")
+}
