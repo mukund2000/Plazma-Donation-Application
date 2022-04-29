@@ -29,6 +29,8 @@ const InvalidLoginErrorMsg = "invalid user email or password"
 const AddErrorMsg = "unable to append data in collection"
 const ErrorGettingUserDoc = "error Getting User Doc"
 const DecodeErrorMsg = "invalid data provided"
+const FirebaseErrorMsg = "error in getting firebase document"
+const UpdateErrorMsg = "failed to update document"
 
 func GetFirebaseInstance() (*firebase.App, error) {
 	ctx := context.Background()

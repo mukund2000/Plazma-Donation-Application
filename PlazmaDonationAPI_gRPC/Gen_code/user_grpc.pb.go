@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*Success, error)
-	DeleteUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*Success, error)
+	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*Success, error)
 	UpdateUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*UserDetails, error)
 	GetUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetAllDonors(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*ListUser, error)
@@ -58,7 +58,7 @@ func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ..
 	return out, nil
 }
 
-func (c *userServiceClient) DeleteUser(ctx context.Context, in *UserDetails, opts ...grpc.CallOption) (*Success, error) {
+func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*Success, error) {
 	out := new(Success)
 	err := c.cc.Invoke(ctx, "/User.UserService/DeleteUser", in, out, opts...)
 	if err != nil {
@@ -154,7 +154,7 @@ func (c *userServiceClient) ResetPassword(ctx context.Context, in *EmptyRequest,
 type UserServiceServer interface {
 	CreateUser(context.Context, *UserDetails) (*UserDetails, error)
 	Login(context.Context, *LoginRequest) (*Success, error)
-	DeleteUser(context.Context, *UserDetails) (*Success, error)
+	DeleteUser(context.Context, *DeleteUserRequest) (*Success, error)
 	UpdateUser(context.Context, *UserDetails) (*UserDetails, error)
 	GetUser(context.Context, *UserRequest) (*UserResponse, error)
 	GetAllDonors(context.Context, *UserDetails) (*ListUser, error)
@@ -177,7 +177,7 @@ func (UnimplementedUserServiceServer) CreateUser(context.Context, *UserDetails) 
 func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedUserServiceServer) DeleteUser(context.Context, *UserDetails) (*Success, error) {
+func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUser(context.Context, *UserDetails) (*UserDetails, error) {
@@ -257,7 +257,7 @@ func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _UserService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserDetails)
+	in := new(DeleteUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func _UserService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/User.UserService/DeleteUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).DeleteUser(ctx, req.(*UserDetails))
+		return srv.(UserServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

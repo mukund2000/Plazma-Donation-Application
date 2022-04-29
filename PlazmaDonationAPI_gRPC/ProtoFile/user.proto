@@ -5,8 +5,8 @@ option go_package = "http://Grpc/User";
 package User;
 
 message UserRequest{
-    string Id = 1;
-    string SecretCode = 2;
+    string UserId = 1;
+    string RequestedUserId = 2;
 }
 
 message UserResponse{
@@ -24,9 +24,9 @@ message UserDetails{
     string PhoneNum = 5;
     Type UserType = 6;
     string DiseaseDes = 7;
-    map<string,int32> RequestUsers = 8;
-    map<string,int32> PendingUsers = 9;
-    map<string,int32> ConnectUsers = 10;
+    repeated string RequestUsers = 8;
+    repeated string PendingUsers = 9;
+    repeated string ConnectUsers = 10;
     string Email = 11;
 }
 enum Type{
@@ -49,10 +49,17 @@ message EmptyRequest{
 message ResetPasswordResponse{
     string ResetLink = 1;
 }
+message DeleteUserRequest{
+    string UserId = 1;
+}
+message UpdateUserRequest{
+    string UserId = 1;
+}
+
 service UserService{
     rpc CreateUser(UserDetails) returns(UserDetails){};
     rpc Login(LoginRequest) returns(Success){};
-    rpc DeleteUser(UserDetails) returns(Success){};
+    rpc DeleteUser(DeleteUserRequest) returns(Success){};
     rpc UpdateUser(UserDetails) returns(UserDetails){};
     rpc GetUser(UserRequest) returns(UserResponse){};
     rpc GetAllDonors(UserDetails) returns(ListUser){};
