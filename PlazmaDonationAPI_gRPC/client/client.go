@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
+	pb "PlazmaDonation/Gen_code"
 	"google.golang.org/grpc"
 )
 

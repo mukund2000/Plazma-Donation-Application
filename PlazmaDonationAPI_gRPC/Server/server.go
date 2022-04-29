@@ -1,8 +1,8 @@
 package services
 
 import (
-	common "PlazmaDonation/PlazmaDonationAPI_gRPC/Common"
-	pb "PlazmaDonation/PlazmaDonationAPI_gRPC/Gen_code"
+	common "PlazmaDonation/Common"
+	pb "PlazmaDonation/Gen_code"
 	"bytes"
 	"cloud.google.com/go/firestore"
 	"context"
@@ -10,11 +10,9 @@ import (
 	"errors"
 	"firebase.google.com/go/auth"
 	"google.golang.org/api/iterator"
-	"net/http"
-	"sync"
-
 	"log"
 	"math/rand"
+	"net/http"
 	"strconv"
 )
 
@@ -33,8 +31,6 @@ const requestUsersField = "RequestUsers"
 const pendingUsersField = "PendingUsers"
 const connectUsersField = "ConnectUsers"
 const emailField = "Email"
-
-var m sync.Mutex
 
 func (s *Server) CreateUser(ctx context.Context, user *pb.UserDetails) (*pb.UserDetails, error) {
 	fireAuth, fireClient, err := common.GetFireAuthFireClient(ctx)
