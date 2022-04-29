@@ -89,12 +89,12 @@ func TestCreateUser(t *testing.T) {
 	}(conn)
 	client := pb.NewUserServiceClient(conn)
 	request := &pb.UserDetails{
-		Email:      "mukundrastogixyz@gmail.com",
-		Name:       "Mukund",
-		Address:    "bdhbjksbkj",
-		UserType:   "Donor",
-		DiseaseDes: "dshviwdhbkk",
-		PhoneNum:   "39839872930",
+		Email:      "rastogimukund@gmail.com",
+		Name:       "Mukund Rastogi",
+		Address:    "Kanpur",
+		UserType:   1,
+		DiseaseDes: "XYZ",
+		PhoneNum:   "124578963",
 	}
 	response, err := client.CreateUser(ctx, request)
 	if err != nil {
@@ -102,4 +102,29 @@ func TestCreateUser(t *testing.T) {
 	}
 	t.Log(response)
 	t.Log("Owner user created")
+}
+func TestLogin(t *testing.T) {
+	//change to localhost when locally testing
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.LoginRequest{
+		Email:    "mukundrastogixyz@gmail.com",
+		Password: "Test123",
+	}
+	response, err := client.Login(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Login Success")
 }
