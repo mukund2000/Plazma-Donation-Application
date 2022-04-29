@@ -31,6 +31,8 @@ const ErrorGettingUserDoc = "error Getting User Doc"
 const DecodeErrorMsg = "invalid data provided"
 const FirebaseErrorMsg = "error in getting firebase document"
 const UpdateErrorMsg = "failed to update document"
+const DonorErrorMsg = "unable to get donors data"
+const PatientErrorMsg = "unable to get patients data"
 
 func GetFirebaseInstance() (*firebase.App, error) {
 	ctx := context.Background()

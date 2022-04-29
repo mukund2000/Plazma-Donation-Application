@@ -128,3 +128,75 @@ func TestLogin(t *testing.T) {
 	t.Log(response)
 	t.Log("Login Success")
 }
+func TestUpdateUser(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.UserDetails{
+		Id:         "6n4otLpUlnhB242bsKqHxXEWr7K2",
+		PhoneNum:   "44841616323",
+		Address:    "hjdhhdbkbsh",
+		DiseaseDes: "bjkbkjbkjbjjkk",
+	}
+	response, err := client.UpdateUser(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Update Success")
+}
+func TestGetAllPatients(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.UserDetails{
+		Id: "6n4otLpUlnhB242bsKqHxXEWr7K2",
+	}
+	response, err := client.GetAllPatients(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Update Success")
+}
+func TestGetAllDonors(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithInsecure(), grpc.WithContextDialer(userDialer()))
+	if err != nil {
+		log.Println(err, "server")
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
+	client := pb.NewUserServiceClient(conn)
+	request := &pb.UserDetails{
+		Id: "6n4otLpUlnhB242bsKqHxXEWr7K2",
+	}
+	response, err := client.GetAllDonors(ctx, request)
+	if err != nil {
+		grpclog.Fatalf("fail to dial: %v", err)
+	}
+	t.Log(response)
+	t.Log("Getting ALL Donors Success")
+}
