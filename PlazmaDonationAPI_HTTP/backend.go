@@ -4,9 +4,11 @@ import (
 	common "PlazmaDonationHTTP/Common"
 	pb "PlazmaDonationHTTP/GeneratedCode"
 	"bytes"
+	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
 	"firebase.google.com/go/auth"
+	"google.golang.org/api/iterator"
 	"log"
 	"math/rand"
 	"net/http"
@@ -64,7 +66,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			log.Println(common.AuthInvalidMsg)
 			return
 		}
-		loginResponse := pb.Success{Name: "Login Success"}
+		loginResponse := &pb.Success{Name: "Login Success"}
 		if err := json.NewEncoder(w).Encode(loginResponse); err != nil {
 			log.Println(common.EncodeErrorMsg)
 			return
@@ -129,39 +131,645 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		deleteUserRequest := &pb.DeleteUserRequest{}
+		if err := data.Decode(deleteUserRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(deleteUserRequest.UserId).Delete(ctx)
+		if err != nil {
+			log.Println(common.FirebaseErrorMsg)
+			return
+		}
+		_, err = common.GetUserDocument(fireClient, deleteUserRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		response := &pb.Success{Name: "User deleted"}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserRequest{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		requestUSerDoc, err := common.GetUserDocument(fireClient, userRequest.RequestedUserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		connectedUsers := userDoc.ConnectUsers
+		found := false
+		for _, user := range connectedUsers {
+			if user == userRequest.RequestedUserId {
+				found = true
+			}
+		}
+		userDetails := pb.UserResponse{}
+		userDetails.Id = requestUSerDoc.Id
+		userDetails.Name = requestUSerDoc.Name
+		if found {
+			userDetails.Address = requestUSerDoc.Address
+			userDetails.PhoneNum = requestUSerDoc.PhoneNum
+		}
+		if err := json.NewEncoder(w).Encode(&userDetails); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
-
 func getAllDonors(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserDetails{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.Id)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType != pb.Type_patient {
+			log.Println(common.DonorErrorMsg)
+			return
+		}
+		var usersArr []*pb.UserResponse
+		iter := fireClient.Collection(common.CollectionUsers).Where(userTypeField, "==", pb.Type_donor).Documents(ctx)
+		for {
+			tempDoc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				log.Println(common.FirebaseErrorMsg)
+				return
+			}
+			userData, err := common.GetUserDocument(fireClient, tempDoc.Ref.ID)
+			if err != nil {
+				log.Println(common.ErrorGettingUserDoc)
+				return
+			}
+			userDetails := &pb.UserResponse{}
+			userDetails.Id = userData.Id
+			userDetails.Name = userData.Name
+			for _, id := range userData.ConnectUsers {
+				if id == userDoc.Id {
+					userDetails.Address = userData.Address
+					userDetails.PhoneNum = userData.PhoneNum
+				}
+			}
+			usersArr = append(usersArr, userDetails)
+		}
+		response := &pb.ListUser{Users: usersArr}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func getAllPatients(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserDetails{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.Id)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType != pb.Type_donor {
+			log.Println(common.PatientErrorMsg)
+			return
+		}
+		var usersArr []*pb.UserResponse
+		iter := fireClient.Collection(common.CollectionUsers).Where(userTypeField, "==", pb.Type_patient).Documents(ctx)
+		for {
+			tempDoc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				log.Println(common.FirebaseErrorMsg)
+				return
+			}
+			userData, err := common.GetUserDocument(fireClient, tempDoc.Ref.ID)
+			if err != nil {
+				log.Println(common.ErrorGettingUserDoc)
+				return
+			}
+			userDetails := &pb.UserResponse{}
+			userDetails.Id = userData.Id
+			userDetails.Name = userData.Name
+			for _, id := range userData.ConnectUsers {
+				if id == userDoc.Id {
+					userDetails.Address = userData.Address
+					userDetails.PhoneNum = userData.PhoneNum
+				}
+			}
+			usersArr = append(usersArr, userDetails)
+		}
+		response := &pb.ListUser{Users: usersArr}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func updateContactDetails(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserDetails{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.Id)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		updatedPhoneNum := userRequest.PhoneNum
+		updatedAddress := userRequest.Address
+		updatedDiseaseDes := userRequest.DiseaseDes
+		if updatedPhoneNum == common.EmptyString || updatedPhoneNum == userDoc.PhoneNum {
+			updatedPhoneNum = userDoc.PhoneNum
+		}
+		if updatedAddress == common.EmptyString || updatedAddress == userDoc.Address {
+			updatedAddress = userDoc.Address
+		}
+		if updatedDiseaseDes == common.EmptyString || updatedDiseaseDes == userDoc.DiseaseDes {
+			updatedDiseaseDes = userDoc.DiseaseDes
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(userRequest.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  phoneNumField,
+				Value: userRequest.PhoneNum,
+			},
+			{
+				Path:  addressField,
+				Value: userRequest.Address,
+			},
+			{
+				Path:  diseaseDesField,
+				Value: userRequest.DiseaseDes,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		updatedUserDoc, err := common.GetUserDocument(fireClient, userRequest.Id)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if err := json.NewEncoder(w).Encode(&updatedUserDoc); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
-
 func sendRequest(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserRequest{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		requestUserDoc, err := common.GetUserDocument(fireClient, userRequest.RequestedUserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType == requestUserDoc.UserType {
+			log.Println(common.UnAuthErrorMsg)
+			return
+		}
+		requestUsers := userDoc.RequestUsers
+		requestUsers = append(requestUsers, requestUserDoc.Id)
+		pendingUsers := requestUserDoc.PendingUsers
+		pendingUsers = append(pendingUsers, userDoc.Id)
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  requestUsersField,
+				Value: requestUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  pendingUsersField,
+				Value: pendingUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		response := &pb.Success{Name: "Request sent Successfully."}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func acceptRequest(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserRequest{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		requestUserDoc, err := common.GetUserDocument(fireClient, userRequest.RequestedUserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType == requestUserDoc.UserType {
+			log.Println(common.UnAuthErrorMsg)
+			return
+		}
+		pendingUsers := userDoc.PendingUsers
+		found := false
+		for index, id := range userDoc.PendingUsers {
+			if id == requestUserDoc.Id {
+				found = true
+				if index == 0 {
+					pendingUsers = pendingUsers[index+1:]
+				} else if index+1 != len(pendingUsers) {
+					pendingUsers = append(pendingUsers[0:index], pendingUsers[index+1:]...)
+				} else {
+					pendingUsers = pendingUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		requestUsers := requestUserDoc.RequestUsers
+		found = false
+		for index, id := range requestUsers {
+			if id == userDoc.Id {
+				found = true
+				if index == 0 {
+					requestUsers = requestUsers[index+1:]
+				} else if index+1 != len(pendingUsers) {
+					requestUsers = append(requestUsers[0:index], requestUsers[index+1:]...)
+				} else {
+					requestUsers = requestUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		connectedUser := userDoc.ConnectUsers
+		requestConnectedUsers := requestUserDoc.ConnectUsers
+		connectedUser = append(connectedUser, requestUserDoc.Id)
+		requestConnectedUsers = append(requestConnectedUsers, userDoc.Id)
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  pendingUsersField,
+				Value: pendingUsers,
+			},
+			{
+				Path:  connectUsersField,
+				Value: connectedUser,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  requestUsersField,
+				Value: requestUsers,
+			},
+			{
+				Path:  connectUsersField,
+				Value: requestConnectedUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		response := &pb.Success{Name: "Request Accepted."}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func cancelRequest(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserRequest{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		requestUserDoc, err := common.GetUserDocument(fireClient, userRequest.RequestedUserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType == requestUserDoc.UserType {
+			log.Println(common.UnAuthErrorMsg)
+			return
+		}
+		pendingUsers := userDoc.PendingUsers
+		found := false
+		for index, id := range userDoc.PendingUsers {
+			if id == requestUserDoc.Id {
+				found = true
+				if index == 0 {
+					pendingUsers = pendingUsers[index+1:]
+				} else if index+1 != len(pendingUsers) {
+					pendingUsers = append(pendingUsers[0:index], pendingUsers[index+1:]...)
+				} else {
+					pendingUsers = pendingUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		requestUsers := requestUserDoc.RequestUsers
+		found = false
+		for index, id := range requestUsers {
+			if id == userDoc.Id {
+				found = true
+				if index == 0 {
+					requestUsers = requestUsers[index+1:]
+				} else if index+1 != len(pendingUsers) {
+					requestUsers = append(requestUsers[0:index], requestUsers[index+1:]...)
+				} else {
+					requestUsers = requestUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  pendingUsersField,
+				Value: pendingUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  requestUsersField,
+				Value: requestUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		response := &pb.Success{Name: "Request Deleted."}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func cancelConnection(w http.ResponseWriter, r *http.Request) {
-
+	switch r.Method {
+	case http.MethodPost:
+		data := json.NewDecoder(r.Body)
+		userRequest := &pb.UserRequest{}
+		if err := data.Decode(userRequest); err != nil {
+			log.Println(common.DecodeErrorMsg)
+			return
+		}
+		ctx := context.Background()
+		_, fireClient, err := common.GetFireAuthFireClient(ctx)
+		if err != nil {
+			log.Println(common.InternalErrorMsg)
+			return
+		}
+		defer common.HandleFirebaseClientError(fireClient)
+		userDoc, err := common.GetUserDocument(fireClient, userRequest.UserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		requestUserDoc, err := common.GetUserDocument(fireClient, userRequest.RequestedUserId)
+		if err != nil {
+			log.Println(common.ErrorGettingUserDoc)
+			return
+		}
+		if userDoc.UserType == requestUserDoc.UserType {
+			log.Println(common.UnAuthErrorMsg)
+			return
+		}
+		connectedUsers := userDoc.ConnectUsers
+		found := false
+		for index, id := range userDoc.ConnectUsers {
+			if id == requestUserDoc.Id {
+				found = true
+				if index == 0 {
+					connectedUsers = connectedUsers[index+1:]
+				} else if index+1 != len(connectedUsers) {
+					connectedUsers = append(connectedUsers[0:index], connectedUsers[index+1:]...)
+				} else {
+					connectedUsers = connectedUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		requestConnectedUsers := requestUserDoc.ConnectUsers
+		found = false
+		for index, id := range requestConnectedUsers {
+			if id == userDoc.Id {
+				found = true
+				if index == 0 {
+					requestConnectedUsers = requestConnectedUsers[index+1:]
+				} else if index+1 != len(requestConnectedUsers) {
+					requestConnectedUsers = append(requestConnectedUsers[0:index], requestConnectedUsers[index+1:]...)
+				} else {
+					requestConnectedUsers = requestConnectedUsers[0:index]
+				}
+				break
+			}
+		}
+		if !found {
+			log.Println(common.RequestNotFound)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  connectUsersField,
+				Value: connectedUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+			{
+				Path:  connectUsersField,
+				Value: requestConnectedUsers,
+			},
+		})
+		if err != nil {
+			log.Println(common.UpdateErrorMsg)
+			return
+		}
+		response := &pb.Success{Name: "Connection Removed."}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Println(common.EncodeErrorMsg)
+			return
+		}
+	default:
+		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
+	}
 }
 
 func main() {
