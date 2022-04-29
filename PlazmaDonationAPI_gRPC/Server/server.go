@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"firebase.google.com/go/auth"
+	"google.golang.org/api/iterator"
 	"net/http"
 	"sync"
 
@@ -202,48 +203,86 @@ func (s *Server) UpdateUser(ctx context.Context, in *pb.UserDetails) (*pb.UserDe
 	return updatedUserDoc, nil
 }
 
-func (s *Server) GetAllDonors(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
-	//user := in
-	//if userStruct, found := UsersByCode[user.SecretCode]; found {
-	//	var userData []*pb.UserResponse
-	//	tempUsertype := userStruct.UserType
-	//	if tempUsertype != pb.Type_donor {
-	//		for key, value := range Donors {
-	//			userDetails := pb.UserResponse{}
-	//			userDetails.Id = value.Id
-	//			userDetails.Name = value.Name
-	//			if _, found := userStruct.ConnectUsers[key]; found {
-	//				userDetails.Address = value.Address
-	//				userDetails.PhoneNum = value.PhoneNum
-	//			}
-	//			userData = append(userData, &userDetails)
-	//		}
-	//		return &pb.ListUser{Users: userData}, nil
-	//	}
-	//}
-	return nil, nil
+func (s *Server) GetAllDonors(ctx context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
+	_, fireClient, err := common.GetFireAuthFireClient(ctx)
+	if err != nil {
+		return nil, errors.New(common.InternalErrorMsg)
+	}
+	defer common.HandleFirebaseClientError(fireClient)
+	userDoc, err := common.GetUserDocument(fireClient, in.Id)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	if userDoc.UserType != pb.Type_patient {
+		return nil, errors.New(common.DonorErrorMsg)
+	}
+	var usersArr []*pb.UserResponse
+	iter := fireClient.Collection(common.CollectionUsers).Where(userTypeField, "==", pb.Type_donor).Documents(ctx)
+	for {
+		tempDoc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, errors.New(common.FirebaseErrorMsg)
+		}
+		userData, err := common.GetUserDocument(fireClient, tempDoc.Ref.ID)
+		if err != nil {
+			return nil, errors.New(common.ErrorGettingUserDoc)
+		}
+		userDetails := &pb.UserResponse{}
+		userDetails.Id = userData.Id
+		userDetails.Name = userData.Name
+		for _, id := range userData.ConnectUsers {
+			if id == userDoc.Id {
+				userDetails.Address = userData.Address
+				userDetails.PhoneNum = userData.PhoneNum
+			}
+		}
+		usersArr = append(usersArr, userDetails)
+	}
+	return &pb.ListUser{Users: usersArr}, nil
 }
 
-func (s *Server) GetAllPatients(_ context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
-	//user := in
-	//if userStruct, found := UsersByCode[user.SecretCode]; found {
-	//	var userData []*pb.UserResponse
-	//	tempUsertype := userStruct.UserType
-	//	if tempUsertype != pb.Type_patient {
-	//		for key, value := range Patients {
-	//			userDetails := pb.UserResponse{}
-	//			userDetails.Id = value.Id
-	//			userDetails.Name = value.Name
-	//			if _, found := userStruct.ConnectUsers[key]; found {
-	//				userDetails.Address = value.Address
-	//				userDetails.PhoneNum = value.PhoneNum
-	//			}
-	//			userData = append(userData, &userDetails)
-	//		}
-	//		return &pb.ListUser{Users: userData}, nil
-	//	}
-	//}
-	return nil, nil
+func (s *Server) GetAllPatients(ctx context.Context, in *pb.UserDetails) (*pb.ListUser, error) {
+	_, fireClient, err := common.GetFireAuthFireClient(ctx)
+	if err != nil {
+		return nil, errors.New(common.InternalErrorMsg)
+	}
+	defer common.HandleFirebaseClientError(fireClient)
+	userDoc, err := common.GetUserDocument(fireClient, in.Id)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	if userDoc.UserType != pb.Type_donor {
+		return nil, errors.New(common.PatientErrorMsg)
+	}
+	var usersArr []*pb.UserResponse
+	iter := fireClient.Collection(common.CollectionUsers).Where(userTypeField, "==", pb.Type_patient).Documents(ctx)
+	for {
+		tempDoc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, errors.New(common.FirebaseErrorMsg)
+		}
+		userData, err := common.GetUserDocument(fireClient, tempDoc.Ref.ID)
+		if err != nil {
+			return nil, errors.New(common.ErrorGettingUserDoc)
+		}
+		userDetails := &pb.UserResponse{}
+		userDetails.Id = userData.Id
+		userDetails.Name = userData.Name
+		for _, id := range userData.ConnectUsers {
+			if id == userDoc.Id {
+				userDetails.Address = userData.Address
+				userDetails.PhoneNum = userData.PhoneNum
+			}
+		}
+		usersArr = append(usersArr, userDetails)
+	}
+	return &pb.ListUser{Users: usersArr}, nil
 }
 
 func (s *Server) SendRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
