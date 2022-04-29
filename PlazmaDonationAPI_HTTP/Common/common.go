@@ -1,7 +1,7 @@
 package Common
 
 import (
-	pb "PlazmaDonation/Gen_Code"
+	pb "PlazmaDonationHTTP/GeneratedCode"
 	"cloud.google.com/go/firestore"
 	"context"
 	"encoding/json"
@@ -35,6 +35,7 @@ const DonorErrorMsg = "unable to get donors data"
 const PatientErrorMsg = "unable to get patients data"
 const UnAuthErrorMsg = "same type of usertype not allowed"
 const RequestNotFound = "request not found"
+const EncodeErrorMsg = "Unable to encode data"
 
 func GetFirebaseInstance() (*firebase.App, error) {
 	ctx := context.Background()

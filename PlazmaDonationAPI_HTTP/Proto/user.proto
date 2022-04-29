@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+option go_package = "http://Grpc/User";
+
+package User;
+
+message UserRequest{
+    string UserId = 1;
+    string RequestedUserId = 2;
+}
+
+message UserResponse{
+    string Id =1;
+    string Name = 2;
+    string Address = 3;
+    string PhoneNum = 4;
+}
+
+message UserDetails{
+    string Id = 1;
+    string SecretCode = 2;
+    string Name = 3;
+    string Address = 4;
+    string PhoneNum = 5;
+    Type UserType = 6;
+    string DiseaseDes = 7;
+    repeated string RequestUsers = 8;
+    repeated string PendingUsers = 9;
+    repeated string ConnectUsers = 10;
+    string Email = 11;
+}
+enum Type{
+    patient = 0;
+    donor = 1;
+}
+message Success{
+    string Name = 1;
+}
+message ListUser{
+    repeated UserResponse Users = 1;
+}
+message LoginRequest{
+    string Email = 1;
+    string Password = 2;
+}
+message EmptyRequest{
+
+}
+message ResetPasswordResponse{
+    string ResetLink = 1;
+}
+message DeleteUserRequest{
+    string UserId = 1;
+}
+message UpdateUserRequest{
+    string UserId = 1;
+}
+
+service UserService{
+    rpc CreateUser(UserDetails) returns(UserDetails){};
+    rpc Login(LoginRequest) returns(Success){};
+    rpc DeleteUser(DeleteUserRequest) returns(Success){};
+    rpc UpdateUser(UserDetails) returns(UserDetails){};
+    rpc GetUser(UserRequest) returns(UserResponse){};
+    rpc GetAllDonors(UserDetails) returns(ListUser){};
+    rpc GetAllPatients(UserDetails) returns(ListUser){};
+    rpc SendRequest(UserRequest) returns(Success){};
+    rpc AcceptRequest(UserRequest) returns(Success){};
+    rpc CancelRequest(UserRequest) returns(Success){};
+    rpc CancelConnection(UserRequest) returns(Success){};
+    rpc ResetPassword(EmptyRequest) returns(ResetPasswordResponse){};
+}
