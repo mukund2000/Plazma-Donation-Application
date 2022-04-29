@@ -413,53 +413,151 @@ func (s *Server) AcceptRequest(ctx context.Context, in *pb.UserRequest) (*pb.Suc
 	return &pb.Success{Name: "Request Accepted."}, nil
 }
 
-func (s *Server) CancelRequest(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
-	//user := in
-	//if sender, found := UsersByCode[user.Id]; found {
-	//	if senderD, match := sender.PendingUsers[user.Id]; match {
-	//		if senderD == 1 {
-	//			delete(sender.PendingUsers, user.Id)
-	//		}
-	//	} else {
-	//		return &pb.Success{Name: "Sender Request not found."}, nil
-	//	}
-	//	receiver := UsersById[user.Id]
-	//	senderId := UsersByCode[user.Id].Id
-	//	if receiverD, match := receiver.RequestUsers[senderId]; match {
-	//		if receiverD == 1 {
-	//			delete(receiver.RequestUsers, senderId)
-	//		}
-	//	} else {
-	//		return &pb.Success{Name: "Receiver Request not found."}, nil
-	//	}
-	//} else {
-	//	return &pb.Success{Name: "Invalid Request."}, nil
-	//}
-	return &pb.Success{Name: "Request Rejected."}, nil
+func (s *Server) CancelRequest(ctx context.Context, in *pb.UserRequest) (*pb.Success, error) {
+	_, fireClient, err := common.GetFireAuthFireClient(ctx)
+	if err != nil {
+		return nil, errors.New(common.InternalErrorMsg)
+	}
+	defer common.HandleFirebaseClientError(fireClient)
+	userDoc, err := common.GetUserDocument(fireClient, in.UserId)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	requestUserDoc, err := common.GetUserDocument(fireClient, in.RequestedUserId)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	if userDoc.UserType == requestUserDoc.UserType {
+		return nil, errors.New(common.UnAuthErrorMsg)
+	}
+	pendingUsers := userDoc.PendingUsers
+	found := false
+	for index, id := range userDoc.PendingUsers {
+		if id == requestUserDoc.Id {
+			found = true
+			if index == 0 {
+				pendingUsers = pendingUsers[index+1:]
+			} else if index+1 != len(pendingUsers) {
+				pendingUsers = append(pendingUsers[0:index], pendingUsers[index+1:]...)
+			} else {
+				pendingUsers = pendingUsers[0:index]
+			}
+			break
+		}
+	}
+	if !found {
+		return nil, errors.New(common.RequestNotFound)
+	}
+	requestUsers := requestUserDoc.RequestUsers
+	found = false
+	for index, id := range requestUsers {
+		if id == userDoc.Id {
+			found = true
+			if index == 0 {
+				requestUsers = requestUsers[index+1:]
+			} else if index+1 != len(pendingUsers) {
+				requestUsers = append(requestUsers[0:index], requestUsers[index+1:]...)
+			} else {
+				requestUsers = requestUsers[0:index]
+			}
+			break
+		}
+	}
+	if !found {
+		return nil, errors.New(common.RequestNotFound)
+	}
+	_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+		{
+			Path:  pendingUsersField,
+			Value: pendingUsers,
+		},
+	})
+	if err != nil {
+		return nil, errors.New(common.UpdateErrorMsg)
+	}
+	_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+		{
+			Path:  requestUsersField,
+			Value: requestUsers,
+		},
+	})
+	if err != nil {
+		return nil, errors.New(common.UpdateErrorMsg)
+	}
+	return &pb.Success{Name: "Request Deleted."}, nil
 }
 
-func (s *Server) CancelConnection(_ context.Context, in *pb.UserRequest) (*pb.Success, error) {
-	//user := in
-	//if sender, found := UsersByCode[user.Id]; found {
-	//	if senderD, match := sender.ConnectUsers[user.Id]; match {
-	//		if senderD == 1 {
-	//			delete(sender.ConnectUsers, user.Id)
-	//		}
-	//	} else {
-	//		return &pb.Success{Name: "Sender Request not found."}, nil
-	//	}
-	//	receiver := UsersById[user.Id]
-	//	senderId := UsersByCode[user.Id].Id
-	//	if receiverD, match := receiver.ConnectUsers[senderId]; match {
-	//		if receiverD == 1 {
-	//			delete(receiver.ConnectUsers, senderId)
-	//		}
-	//	} else {
-	//		return &pb.Success{Name: "Receiver Request not found."}, nil
-	//	}
-	//} else {
-	//	return &pb.Success{Name: "Invalid Request."}, nil
-	//}
+func (s *Server) CancelConnection(ctx context.Context, in *pb.UserRequest) (*pb.Success, error) {
+	_, fireClient, err := common.GetFireAuthFireClient(ctx)
+	if err != nil {
+		return nil, errors.New(common.InternalErrorMsg)
+	}
+	defer common.HandleFirebaseClientError(fireClient)
+	userDoc, err := common.GetUserDocument(fireClient, in.UserId)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	requestUserDoc, err := common.GetUserDocument(fireClient, in.RequestedUserId)
+	if err != nil {
+		return nil, errors.New(common.ErrorGettingUserDoc)
+	}
+	if userDoc.UserType == requestUserDoc.UserType {
+		return nil, errors.New(common.UnAuthErrorMsg)
+	}
+	connectedUsers := userDoc.ConnectUsers
+	found := false
+	for index, id := range userDoc.ConnectUsers {
+		if id == requestUserDoc.Id {
+			found = true
+			if index == 0 {
+				connectedUsers = connectedUsers[index+1:]
+			} else if index+1 != len(connectedUsers) {
+				connectedUsers = append(connectedUsers[0:index], connectedUsers[index+1:]...)
+			} else {
+				connectedUsers = connectedUsers[0:index]
+			}
+			break
+		}
+	}
+	if !found {
+		return nil, errors.New(common.RequestNotFound)
+	}
+	requestConnectedUsers := requestUserDoc.ConnectUsers
+	found = false
+	for index, id := range requestConnectedUsers {
+		if id == userDoc.Id {
+			found = true
+			if index == 0 {
+				requestConnectedUsers = requestConnectedUsers[index+1:]
+			} else if index+1 != len(requestConnectedUsers) {
+				requestConnectedUsers = append(requestConnectedUsers[0:index], requestConnectedUsers[index+1:]...)
+			} else {
+				requestConnectedUsers = requestConnectedUsers[0:index]
+			}
+			break
+		}
+	}
+	if !found {
+		return nil, errors.New(common.RequestNotFound)
+	}
+	_, err = fireClient.Collection(common.CollectionUsers).Doc(userDoc.Id).Update(ctx, []firestore.Update{
+		{
+			Path:  connectUsersField,
+			Value: connectedUsers,
+		},
+	})
+	if err != nil {
+		return nil, errors.New(common.UpdateErrorMsg)
+	}
+	_, err = fireClient.Collection(common.CollectionUsers).Doc(requestUserDoc.Id).Update(ctx, []firestore.Update{
+		{
+			Path:  connectUsersField,
+			Value: requestConnectedUsers,
+		},
+	})
+	if err != nil {
+		return nil, errors.New(common.UpdateErrorMsg)
+	}
 	return &pb.Success{Name: "Connection Removed."}, nil
 }
 
