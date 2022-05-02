@@ -1,4 +1,4 @@
-package main
+package Server
 
 import (
 	common "PlazmaDonationHTTP/Common"
@@ -27,7 +27,7 @@ const pendingUsersField = "PendingUsers"
 const connectUsersField = "ConnectUsers"
 const emailField = "Email"
 
-func login(w http.ResponseWriter, r *http.Request) {
+func Login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -76,7 +76,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
+func CreateUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -130,7 +130,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteUser(w http.ResponseWriter, r *http.Request) {
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -166,7 +166,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) {
+func GetUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -214,7 +214,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
 	}
 }
-func getAllDonors(w http.ResponseWriter, r *http.Request) {
+func GetAllDonors(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -276,7 +276,7 @@ func getAllDonors(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getAllPatients(w http.ResponseWriter, r *http.Request) {
+func GetAllPatients(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -338,7 +338,7 @@ func getAllPatients(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateContactDetails(w http.ResponseWriter, r *http.Request) {
+func UpdateContactDetails(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -402,7 +402,7 @@ func updateContactDetails(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, common.InternalErrorMsg, http.StatusBadRequest)
 	}
 }
-func sendRequest(w http.ResponseWriter, r *http.Request) {
+func SendRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -466,7 +466,7 @@ func sendRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func acceptRequest(w http.ResponseWriter, r *http.Request) {
+func AcceptRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -576,7 +576,7 @@ func acceptRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func cancelRequest(w http.ResponseWriter, r *http.Request) {
+func CancelRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -674,7 +674,7 @@ func cancelRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func cancelConnection(w http.ResponseWriter, r *http.Request) {
+func CancelConnection(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		data := json.NewDecoder(r.Body)
@@ -772,17 +772,17 @@ func cancelConnection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	http.HandleFunc("/createUser", createUser)
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/getUser", getUser)
-	http.HandleFunc("/getDonors", getAllDonors)
-	http.HandleFunc("/getPatients", getAllPatients)
-	http.HandleFunc("/deleteUser", deleteUser)
-	http.HandleFunc("/updateContactDetails", updateContactDetails)
-	http.HandleFunc("/sendRequest", sendRequest)
-	http.HandleFunc("/acceptRequest", acceptRequest)
-	http.HandleFunc("/cancelRequest", cancelRequest)
-	http.HandleFunc("/cancelConnection", cancelConnection)
-	log.Println(http.ListenAndServe("192.168.29.118:8080", nil))
-}
+//func main() {
+//	http.HandleFunc("/createUser", CreateUser)
+//	http.HandleFunc("/login", login)
+//	http.HandleFunc("/getUser", getUser)
+//	http.HandleFunc("/getDonors", getAllDonors)
+//	http.HandleFunc("/getPatients", getAllPatients)
+//	http.HandleFunc("/deleteUser", deleteUser)
+//	http.HandleFunc("/updateContactDetails", updateContactDetails)
+//	http.HandleFunc("/sendRequest", sendRequest)
+//	http.HandleFunc("/acceptRequest", acceptRequest)
+//	http.HandleFunc("/cancelRequest", cancelRequest)
+//	http.HandleFunc("/cancelConnection", cancelConnection)
+//	log.Println(http.ListenAndServe("192.168.29.118:8080", nil))
+//}
