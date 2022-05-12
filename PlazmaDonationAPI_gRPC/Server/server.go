@@ -115,10 +115,6 @@ func (s *Server) DeleteUser(ctx context.Context, in *pb.DeleteUserRequest) (*pb.
 	if err != nil {
 		return nil, errors.New(common.FirebaseErrorMsg)
 	}
-	_, err = common.GetUserDocument(fireClient, in.UserId)
-	if err != nil {
-		return nil, errors.New(common.ErrorGettingUserDoc)
-	}
 	return &pb.Success{Name: "User deleted"}, nil
 }
 
@@ -556,20 +552,3 @@ func (s *Server) CancelConnection(ctx context.Context, in *pb.UserRequest) (*pb.
 	}
 	return &pb.Success{Name: "Connection Removed."}, nil
 }
-
-//func main() {
-//	UsersByCode = make(map[string]*pb.UserDetails)
-//	UsersById = make(map[string]*pb.UserDetails)
-//	Donors = make(map[string]*pb.UserDetails)
-//	Patients = make(map[string]*pb.UserDetails)
-//	lis, err := net.Listen("tcp", ":3000")
-//	if err != nil {
-//		log.Println("Failed to listen server")
-//	}
-//	ser := grpc.NewServer()
-//	pb.RegisterUserServiceServer(ser, &Server{})
-//
-//	if err := ser.Serve(lis); err != nil {
-//		log.Println("failed to serve")
-//	}
-//}
